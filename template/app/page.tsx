@@ -9,6 +9,7 @@ export default function Home() {
 	if (session) {
 		return (
 			<>
+				{JSON.stringify(session)}
 				Signed in as {session.user?.email} <br />
 				<button onClick={() => signOut()}>Sign out</button>
 			</>

@@ -17,7 +17,7 @@ const SignUp = () => {
 		username: "",
 		email: "",
 		password: "",
-		setpassword: "",
+		confirmpassword: "",
 	});
 
 	const [fieldErrors, setFieldErrors] = useState({
@@ -26,7 +26,7 @@ const SignUp = () => {
 		username: "",
 		email: "",
 		password: "",
-		setpassword: "",
+		confirmpassword: "",
 	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ const SignUp = () => {
 			username: "",
 			email: "",
 			password: "",
-			setpassword: "",
+			confirmpassword: "",
 		});
 
 		// Track if there are any errors
@@ -81,21 +81,21 @@ const SignUp = () => {
 			}));
 			hasErrors = true;
 		}
-		if (!fields.setpassword) {
+		if (!fields.confirmpassword) {
 			setFieldErrors((prev) => ({
 				...prev,
-				setpassword: "Please confirm your password",
+				confirmpassword: "Please confirm your password",
 			}));
 			hasErrors = true;
 		}
 		if (
 			fields.password &&
-			fields.setpassword &&
-			fields.password !== fields.setpassword
+			fields.confirmpassword &&
+			fields.password !== fields.confirmpassword
 		) {
 			setFieldErrors((prev) => ({
 				...prev,
-				setpassword: "Passwords do not match",
+				confirmpassword: "Passwords do not match",
 			}));
 			hasErrors = true;
 		}
@@ -141,17 +141,18 @@ const SignUp = () => {
 
 			const createData = await createResponse.json();
 
-			if (!createResponse.ok) {
+			if (createResponse.ok) {
+				router.push("/login");
+			} else {
 				setFieldErrors((prev) => ({ ...prev, username: createData.error }));
 				return;
 			}
-
 			// Success! Redirect or show success message
 			// window.location.href = "/login"; // or use Next.js router
 		} catch (error) {
 			setFieldErrors((prev) => ({
 				...prev,
-				setpassword: "Something went wrong. Please try again.",
+				confirmpassword: "Something went wrong. Please try again.",
 			}));
 			console.error(error);
 		}
@@ -159,10 +160,10 @@ const SignUp = () => {
 
 	return (
 		<form
-			className="flex flex-col rounded-lg bg-white text-black p-3 w-96 gap-2 px-8 mx-auto mt-20"
+			className="shadow-xl shadow-gray-700 flex flex-col rounded-lg bg-white text-black p-3 w-96 gap-2 px-8 mx-auto mt-20"
 			onSubmit={handleSubmit}
 		>
-			<div className="pt-5 text-4xl mb-4">SignUp</div>
+			<div className="pt-5 text-4xl mb-4">Sign Up</div>
 			<div className="flex flex-col justify-center rounded-lg gap-2">
 				<div className="flex gap-3">
 					<div className="w-1/2 flex flex-col">
@@ -268,9 +269,12 @@ const SignUp = () => {
 						id="confirm-password"
 						type="password"
 						placeholder="password"
-						value={fields.setpassword}
+						value={fields.confirmpassword}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-							setFields((prev) => ({ ...prev, setpassword: e.target.value }))
+							setFields((prev) => ({
+								...prev,
+								confirmpassword: e.target.value,
+							}))
 						}
 						className={`p-2 flex border-2 border-grey-300 rounded-lg overflow-hidden ${
 							fields["password"].length == 0
@@ -278,11 +282,21 @@ const SignUp = () => {
 								: "ease-in-out duration-500"
 						}`}
 					/>
-					{fieldErrors.setpassword && (
+					{fieldErrors.confirmpassword && (
 						<span className="text-red-500 text-sm mt-1">
-							{fieldErrors.setpassword}
+							{fieldErrors.confirmpassword}
 						</span>
 					)}
+					<span
+						className={`text-red-500 text-sm mt-1 transition-opacity duration-200 ${
+							fields.password !== fields.confirmpassword &&
+							fields.confirmpassword.length !== 0
+								? "opacity-100"
+								: "opacity-0"
+						}`}
+					>
+						Passwords do not match
+					</span>{" "}
 				</div>
 			</div>
 

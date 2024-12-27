@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { AuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter as PA } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
@@ -29,6 +30,10 @@ declare module "next-auth/jwt" {
 export const authOptions: AuthOptions = {
 	adapter: PA(prisma),
 	providers: [
+		GoogleProvider({
+			clientId: process.env.GOOGLE_CLIENT_ID!,
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+		}),
 		CredentialsProvider({
 			name: "credentials",
 			credentials: {
@@ -79,29 +84,54 @@ export const authOptions: AuthOptions = {
 		}),
 	],
 	callbacks: {
+		async signIn({ user, account, profile }) {
+			if (account?.provider === "google") {
+				const existingUser = await prisma.user.findUnique({
+					where: { email: user.email! },
+					include: { accounts: true },
+				});
+
+				// If user exists and has no Google account linked
+				if (existingUser && !existingUser.accounts.length) {
+					// Link the Google account to the existing user
+					await prisma.account.create({
+						data: {
+							userId: existingUser.id,
+							type: account.type,
+							provider: account.provider,
+							providerAccountId: account.providerAccountId,
+							access_token: account.access_token,
+							token_type: account.token_type,
+							scope: account.scope,
+							id_token: account.id_token,
+						},
+					});
+					return true;
+				}
+			}
+			return true;
+		},
+		async session({ session, token }) {
+			if (session?.user) {
+				session.user.id = token.id as string;
+			}
+			return session;
+		},
 		async jwt({ token, user }) {
 			if (user) {
 				token.id = user.id;
-				token.username = user.username;
 			}
 			return token;
-		},
-		async session({ session, token }) {
-			if (session.user) {
-				session.user.id = token.id;
-				session.user.username = token.username;
-			}
-			return session;
 		},
 	},
 	pages: {
 		signIn: "/login",
+		error: "/auth/error", // Add this line
 	},
 	session: {
 		strategy: "jwt",
 	},
-	secret: process.env.NEXTAUTH_SECRET,
-	debug: process.env.NODE_ENV === "development", // Enable debug messages
+	debug: process.env.NODE_ENV === "development",
 };
 
 const handler = NextAuth(authOptions);
